@@ -2,12 +2,23 @@
 CC=gcc
 CXX=g++
 
-OBJS=scheduler.o
+OPTIONS=-DENABLE_MYSQL_BACKEND
 
-all:	$(OBJS)
+CFLAGS=-ggdb $(OPTIONS)
+
+OBJS=scheduler.o jobs.o output.o common.o main.o backend.o server.o
+LIBS=-lpthread `mysql_config --libs`
+
+OBJS_CLIENT=common.o client.o
+
+all:	$(OBJS) $(OBJS_CLIENT)
+	$(CXX) -o job-sched-daemon $(OBJS) $(LIBS)
+	$(CXX) -o job-sched $(OBJS_CLIENT) -lcurl
 
 
-%.o:	%.c
-	$(CXX) -o $< -c $%
+%.o:	%.cc
+	$(CXX) $(CFLAGS) -o $@ -c $<
 	
+clean:
+	rm -f job-sched $(OBJS) $(OBJS_CLIENT)
 
