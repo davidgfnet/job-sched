@@ -23,6 +23,12 @@ std::string db_database;
 
 MYSQL * mysql_connection = 0;
 
+std::string db_escape(const std::string s) {
+	char tempb[s.size()*2+2];
+	mysql_real_escape_string(mysql_connection, tempb, s.c_str(), s.size());
+	return std::string(tempb);
+}
+
 void my_connnect_reconnect() {
 	if (mysql_connection)
 		mysql_close(mysql_connection);
@@ -48,7 +54,10 @@ void backend_setup() {
 	"  `id` BIGINT(20) unsigned NOT NULL AUTO_INCREMENT,"
 	"  `qid` BIGINT(20) unsigned NOT NULL,"
 	"  `status` tinyint(255) unsigned NOT NULL DEFAULT '0',"
-	"  `commandline` varchar(16384) DEFAULT '',"
+	"  `prio` tinyint(255) unsigned NOT NULL DEFAULT '255',"
+	"  `commandline` varchar(8192) DEFAULT '',"
+	"  `environment` TEXT DEFAULT '',"
+	"  `output` varchar(4096) DEFAULT '',"
 	"  `dateQueued` timestamp NULL DEFAULT CURRENT_TIMESTAMP,"
 	"  `dateStarted` timestamp NULL DEFAULT NULL,"
 	"  PRIMARY KEY (`id`)"
@@ -62,7 +71,7 @@ void backend_setup() {
 	") ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
 	my_connnect_reconnect();
-	if (mysql_query(mysql_connection, query)) {
+	if (!mysql_query(mysql_connection, query)) {
 		printf("MySQL error %s\n", mysql_error(mysql_connection));
 	}
 }
@@ -90,7 +99,7 @@ std::vector < t_job_queue > get_queues() {
 // Get up to Max jobs for a queue
 std::vector < t_queued_job > get_jobs(unsigned long long qid, unsigned long long max, int status) {
 	std::ostringstream query;
-	query << "SELECT `id`,`status`,`commandline`,`dateQueued`,`dateStarted` FROM `jobs` ";
+	query << "SELECT `id`,`status`,`commandline`,`output`,`environment`,UNIX_TIMESTAMP(`dateQueued`),UNIX_TIMESTAMP(`dateStarted`) FROM `jobs` ";
 	if (status >= 0)
 		query << " WHERE `status`=" << status << " AND `qid`=" << qid;
 	else
@@ -108,8 +117,10 @@ std::vector < t_queued_job > get_jobs(unsigned long long qid, unsigned long long
 			t.id = atoi(row[0]);
 			t.status = atoi(row[1]);
 			t.commandline = std::string(row[2]);
-			t.dateq = atoi(row[3]);
-			t.dater = atoi(row[4]);
+			t.output = std::string(row[3]);
+			t.environ = std::string(row[4]);
+			t.dateq = atoi(row[5]);
+			t.dater = row[6] ? atoi(row[6]) : 0;
 			ret.push_back(t);
 		}
 	}
@@ -124,7 +135,10 @@ std::vector < t_queued_job > get_waiting_jobs(unsigned long long qid, unsigned l
 // Get up to Max jobs for a queue
 void set_job_status(unsigned long long id, int status) {
 	std::ostringstream query;
-	query << "UPDATE `jobs` SET `status`=" << status << " WHERE `id`=" << id;
+	query << "UPDATE `jobs` SET `status`=" << status;
+	if (status == 1) // Mark run time
+		query << ",`dateStarted`=now() ";
+	query << " WHERE `id`=" << id;
 	std::string sql = query.str();
 		
 	mysql_query(mysql_connection, sql.c_str());
@@ -133,7 +147,7 @@ void set_job_status(unsigned long long id, int status) {
 // Create a new queue
 unsigned long long create_queue(std::string name, long max_jobs) {
 	std::ostringstream query;
-	query << "INSERT INTO `queues` (`name`,`max_run`) VALUES ('" << name << "','" << max_jobs << "');";
+	query << "INSERT INTO `queues` (`name`,`max_run`) VALUES ('" << db_escape(name) << "','" << max_jobs << "');";
 	std::string sql = query.str();
 		
 	if (!mysql_query(mysql_connection, sql.c_str()))
@@ -141,6 +155,16 @@ unsigned long long create_queue(std::string name, long max_jobs) {
 	return ~0;
 }
 
+// Insert a new job into queue
+bool create_job(unsigned long long qid, const std::string & cmdline, const std::string & env, const std::string &outf, int prio) {
+	std::ostringstream query;
+	query << "INSERT INTO `jobs` (`qid`,`prio`,`commandline`,`environment`,`output`) VALUES ";
+	query << "('" << qid << "','" << prio << "','" << db_escape(cmdline) << "','" << db_escape(env);
+	query << "','" << db_escape(outf) << "');";
+	std::string sql = query.str();
+		
+	return (!mysql_query(mysql_connection, sql.c_str()));
+}
 
 #endif
 

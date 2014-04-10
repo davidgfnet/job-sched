@@ -106,10 +106,11 @@ int main(int argc, char ** argv) {
 	if (strcmp("queue", command) == 0) {
 		if (arg0 && arg1) {
 			std::string command;
-			for (int i = 4; i < argc; i++)
+			for (int i = 5; i < argc; i++)
 				command += std::string(argv[i]) + ((i+1 < argc) ? "\n" : "");
+			std::string outfile = fullpath(arg1);
 			std::string env = getenv();
-			std::string p = "command=" + uencode(command) + "&env=" + uencode(env) + "&output=" + uencode(arg1);
+			std::string p = "command=" + uencode(command) + "&env=" + uencode(env) + "&output=" + uencode(outfile);
 			std::string r = send_request("/queuejob/" + uencode(arg0), p);
 			std::cout << r << std::endl;
 		}

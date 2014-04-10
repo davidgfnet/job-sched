@@ -6,4 +6,6 @@ int parse_db_config(const std::string & conf);
 void set_job_status(unsigned long long id, int status);
 unsigned long long create_queue(std::string name, long max_jobs);
 void db_load_startup();
+bool create_job(unsigned long long qid, const std::string & cmdline, const std::string & env, const std::string &outf, int prio);
+
 

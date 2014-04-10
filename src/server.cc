@@ -197,9 +197,14 @@ std::string get_response(const std::string & req) {
 		std::string env     = urldecode(post_parse(body, "env"));
 		std::string command = urldecode(post_parse(body, "command"));
 		std::string outputf = urldecode(post_parse(body, "output"));
+		int prio            = atoi(post_parse(body, "prio").c_str());
 		
-		std::cerr << "Adding job to queue " << qid << " command: " << command << " with env: " << env << " to " << outputf << std::endl;
-		os << "<ok />";
+		if (create_job(qid, command, env, outputf, prio))
+			os << "<ok />";
+		else
+			os << "<err />";
+		
+		std::cerr << "Adding job to queue " << qid << " stdout to " << outputf << " command: " << command << " with env: " << env << " to " << outputf << std::endl;
 	}
 	else if (path.substr(0,5) == "/jobs") {
 		unsigned long long qid = ~0;

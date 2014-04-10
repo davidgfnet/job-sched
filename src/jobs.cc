@@ -21,7 +21,8 @@ int get_next_job (unsigned long long qid, t_job * j) {
 	j->pfinished = 0;
 	
 	j->commandline = jobs[0].commandline;
-	j->output = "";
+	j->output = jobs[0].output;
+	j->environ= jobs[0].environ;
 	
 	return 1;
 }
@@ -41,22 +42,28 @@ void spawn_job (t_job * j) {
 		setNonblocking(j->pstdout);
 		
 		// Open file for stdout logging
-		j->pfile = open(j->output.c_str(), O_WRONLY | O_TRUNC);
+		j->pfile = open(j->output.c_str(), O_WRONLY | O_TRUNC | O_CREAT);
 	}else{
 		// Move stdout to our pipe
 		close(pipes[0]);
-		dup2(1, pipes[1]);
-		dup2(2, pipes[1]);
+		dup2(pipes[1], 1);
+		dup2(pipes[1], 2);
 		
 		// Execute the command
-		std::vector <std::string> args = Tokenize(j->commandline, " ");
+		std::vector <std::string> args = Tokenize(j->commandline, "\n");
 		const char * path = args[0].c_str();
-		const char * ar[args.size()];
-		for (unsigned int i = 0; i < args.size()-1; i++)
-			ar[i] = args[i+1].c_str();
-		ar[args.size()-1] = 0;
+		const char * ar[args.size()+1];
+		ar[0] = path;
+		for (unsigned int i = 1; i < args.size(); i++)
+			ar[i] = args[i].c_str();
+		ar[args.size()] = 0;
+		std::vector <std::string> envs = Tokenize(j->environ, "\n");
+		const char * en[envs.size()];
+		for (unsigned int i = 0; i < envs.size()-1; i++)
+			en[i] = envs[i+1].c_str();
+		en[envs.size()-1] = 0;
 		
-		execvp (path, (char* const*)ar);
+		execvpe (path, (char* const*)ar, (char* const*)en);
 	}
 }
 

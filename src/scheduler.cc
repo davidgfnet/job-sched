@@ -45,7 +45,7 @@ void * scheduler_thread(void * args) {
 		// Mark job as done
 		pthread_mutex_lock(&queue_mutex);
 		for (unsigned int i = 0; i < queues.size(); i++) {
-			for (unsigned int j = 0; i < queues[i].running.size(); j++) {
+			for (unsigned int j = 0; j < queues[i].running.size(); j++) {
 				if (queues[i].running[j].pid == f) {
 					queues[i].running[j].pfinished = 1;
 					break;
@@ -54,10 +54,10 @@ void * scheduler_thread(void * args) {
 		}
 		// Remove jobs as soon as process & IO finishes
 		for (unsigned int i = 0; i < queues.size(); i++) {
-			for (unsigned int j = 0; i < queues[i].running.size(); j++) {
+			for (unsigned int j = 0; j < queues[i].running.size(); j++) {
 				if (queues[i].running[j].pfinished && 
-					queues[i].running[j].pfile >= 0 && 
-					queues[i].running[j].pstdout >= 0) {
+					queues[i].running[j].pfile < 0 && 
+					queues[i].running[j].pstdout < 0) {
 					
 					job_finished(&queues[i].running[j]);
 					queues[i].running.erase(queues[i].running.begin() + j);

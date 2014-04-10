@@ -18,12 +18,34 @@ static struct pollfd mkp(int fd, short e) {
 	return p;
 }
 
+static std::string realpath(const std::string & path) {
+	char * r = realpath(path.c_str(),0);
+	std::string res(r);
+	free(r);
+	return res;
+}
+
+// Converts the path from rel to abs in case it's a rel path
+static std::string fullpath(const std::string & path) {
+	if (path.size() > 0 and path[0] != '/') {
+		char temp[8*1024];
+		getcwd(temp, sizeof(temp));
+		std::string cwd = std::string(temp);
+		cwd = realpath(cwd);
+		
+		return cwd + "/" + path;
+	}
+	return path;
+}
+
+
 struct t_job {
 	unsigned long long id;    // Job ID
 	pid_t pid;                // Spawned process ID
 	int pstdout, pfile;       // Pipe from process and to output file
 	std::string commandline;  // Commandline to execute
 	std::string output;       // File to output the process stdout
+	std::string environ;      // Environment variables
 	int dbuffer;              // Intermediate buffer size
 	char buffer[16*1024];     // Intermediate buffer
 	char pfinished;           // Process finished, waiting for final IO
@@ -32,6 +54,7 @@ struct t_queued_job {
 	unsigned long long id;    // Job ID
 	std::string commandline;  // Commandline to execute
 	std::string output;       // File to output the process stdout
+	std::string environ;      // Environment variables
 	int status;               // Job status
 	unsigned long long dateq; // Date queued
 	unsigned long long dater; // Date running
