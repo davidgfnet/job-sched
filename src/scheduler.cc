@@ -1,11 +1,38 @@
 
 #include <iostream>
 #include <vector>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include "common.h"
 #include "backend.h"
+
+pid_t wait_timeout(int * s) {
+	sigset_t mask;
+	sigset_t orig_mask;
+	struct timespec timeout;
+	pid_t pid;
+ 
+	sigemptyset (&mask);
+	sigaddset (&mask, SIGCHLD);
+	sigprocmask(SIG_BLOCK, &mask, &orig_mask);
+ 
+	timeout.tv_sec = 5;
+	timeout.tv_nsec = 0;
+ 
+	while (1) {
+		if (sigtimedwait(&mask, NULL, &timeout) < 0) {
+			if (errno == EINTR) /* Interrupted by a signal other than SIGCHLD. */
+				continue;
+			else
+				return -1;
+		}
+		break;
+	}
+
+	return wait(s);
+}
 
 /*
  * Thread responsible for waiting for jobs to finish
@@ -40,15 +67,17 @@ void * scheduler_thread(void * args) {
 
 		// Wait for a job to finish
 		int s;
-		pid_t f = wait(&s);
+		pid_t f = wait_timeout(&s);
 
 		// Mark job as done
 		pthread_mutex_lock(&queue_mutex);
-		for (unsigned int i = 0; i < queues.size(); i++) {
-			for (unsigned int j = 0; j < queues[i].running.size(); j++) {
-				if (queues[i].running[j].pid == f) {
-					queues[i].running[j].pfinished = 1;
-					break;
+		if (f >= 0) {
+			for (unsigned int i = 0; i < queues.size(); i++) {
+				for (unsigned int j = 0; j < queues[i].running.size(); j++) {
+					if (queues[i].running[j].pid == f) {
+						queues[i].running[j].pfinished = 1;
+						break;
+					}
 				}
 			}
 		}

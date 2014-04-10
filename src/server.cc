@@ -15,7 +15,7 @@
 #include "common.h"
 #include "backend.h"
 
-const char header_200[] = "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/xml\r\nConnection: close\r\n\r\n";
+const char header_200[] = "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: %s\r\nConnection: close\r\n\r\n";
 const char header_404[] = "HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n";
 
 enum CStatus { sReceiving, sResponding, sError };
@@ -138,11 +138,27 @@ bool valid_header(std::string req) {
 	return valid;
 }
 
-std::string get_header(int res) {
+std::string get_mime(std::string type) {
+	if (type == "css") return "text/css";
+	if (type == "html") return "text/html";
+	if (type == "js") return "text/javascript";
+	return "application/octet-stream";
+}
+
+std::string get_ext(std::string path) {
+	std::string ret = path;
+	while (ret.find(".") != std::string::npos) {
+		ret = ret.substr(ret.find(".")+1);
+	}
+	return ret;
+}
+
+std::string get_header(int res, std::string path) {
 	if (res < 0)
 		return std::string(header_404);
+	std::string mtype = (path.substr(0,5) == "/web/" ?get_mime(get_ext(path)) : "application/json");
 	char t[4096];
-	sprintf(t, header_200, res);
+	sprintf(t, header_200, res, mtype.c_str());
 	return std::string(t);
 }
 
@@ -156,6 +172,40 @@ std::string post_parse(const std::string & body, const std::string & param) {
 			return key_val[1];
 	}
 	return "";
+}
+
+std::string get_file(std::string path) {
+	path = fullpath(path);
+	FILE * fd = fopen(path.c_str(), "rb");
+	if (!fd) return "";
+
+	std::string ret;
+	int r;
+	do {
+		char temp[4096];
+		r = fread(temp,1,sizeof(temp),fd);
+		if (r > 0)
+			ret += std::string(temp, r);
+	} while (r > 0);
+	fclose(fd);
+	return ret;
+}
+
+std::string json_escape(const std::string & s) {
+	std::string ret;
+	for (unsigned int i = 0; i < s.size(); i++) {
+		if (s[i] == '\\')
+			ret = ret + "\\\\";
+		else if (s[i] == '\n')
+			ret = ret + "\\n";
+		else if (s[i] == '\r')
+			ret = ret + "\\r";
+		else if (s[i] == '\t')
+			ret = ret + "\\t";
+		else
+			ret = ret + s[i];
+	}
+	return ret;
 }
 
 // Requests:
@@ -179,15 +229,16 @@ std::string get_response(const std::string & req) {
 	printf("Requested %s\n", path.c_str());	
 	if (path == "/queues") {
 		// Return all the queues, with their characteristics
-		os << "<queues>";
+		os << "{ \"code\": \"ok\", \"result\": [ ";
 		pthread_mutex_lock(&queue_mutex);
 		for (unsigned int i = 0; i < queues.size(); i++) {
-			os << "<queue id='" << queues[i].id << "' name='" << queues[i].friendly_name <<
-				"' max_run='" << queues[i].max_running << "' run='" << queues[i].running.size() <<
-				"' />";
+			if (i != 0) os << ",";
+			os << "{ \"id\":\"" << queues[i].id << "\", \"name\":\"" << queues[i].friendly_name <<
+				"\", \"max_run\":\"" << queues[i].max_running << "\", \"run\":\"" << queues[i].running.size() <<
+				"\" }";
 		}
 		pthread_mutex_unlock(&queue_mutex);
-		os << "</queues>";
+		os << "] }";
 	}
 	else if (path.substr(0,9) == "/queuejob") {
 		unsigned long long qid = ~0;
@@ -200,10 +251,9 @@ std::string get_response(const std::string & req) {
 		int prio            = atoi(post_parse(body, "prio").c_str());
 		
 		if (create_job(qid, command, env, outputf, prio))
-			os << "<ok />";
+			os << "{ \"code\": \"ok\"}";
 		else
-			os << "<err />";
-		
+			os << "{ \"code\": \"error\"}";
 	}
 	else if (path.substr(0,5) == "/jobs") {
 		unsigned long long qid = ~0;
@@ -211,25 +261,27 @@ std::string get_response(const std::string & req) {
 			qid = atoi(path.substr(6).c_str());
 		
 		// Get jobs for a given queue (or all queues)
-		os << "<jobs>";
+		os << "{ \"code\": \"ok\", \"result\": [ ";
 		pthread_mutex_lock(&queue_mutex);
 		for (unsigned int i = 0; i < queues.size(); i++) {
 			if (qid != ~0 && queues[i].id != qid) continue;
-			
-			os << "<queue id='" << queues[i].id << "' name='" << queues[i].friendly_name << "'>";
+			if (qid == ~0 && i != 0) os << ",";
+
+			os << "{ \"qid\": \"" << queues[i].id << "\", \"name\": \"" << queues[i].friendly_name << "\", \"jobs\": [";
 			std::vector < t_queued_job > jobs = get_jobs(queues[i].id, ~0, -1);
 			for (unsigned int j = 0; j < jobs.size(); j++) {
-				os << "<job id='" << jobs[j].id << "' ";
-				os << "status='" << jobs[j].status << "' ";
-				os << "dateq='" << jobs[j].dateq << "' ";
-				os << "dater='" << jobs[j].dater << "' ";
-				os << "commandline='" << jobs[j].commandline << "' ";
-				os << "output='" << jobs[j].output << "' />";
+				if (j != 0) os << ",";
+				os << "{ \"id\":\"" << jobs[j].id << "\", ";
+				os << "\"status\":\"" << jobs[j].status << "\", ";
+				os << "\"dateq\":\"" << jobs[j].dateq << "\", ";
+				os << "\"dater\":\"" << jobs[j].dater << "\", ";
+				os << "\"commandline\":\"" << json_escape(jobs[j].commandline) << "\", ";
+				os << "\"output\":\"" << jobs[j].output << "\" }";
 			}
-			os << "</queue>";
+			os << "]}";
 		}
 		pthread_mutex_unlock(&queue_mutex);
-		os << "</jobs>";
+		os << "]}";
 	}
 	else if (path == "/newqueue") {
 		// Data is in the post body
@@ -245,17 +297,20 @@ std::string get_response(const std::string & req) {
 			queues.push_back(qu);
 
 			pthread_mutex_unlock(&queue_mutex);
-			os << "<ok />";
+			os << "{ \"code\": \"ok\"}";
 		}
 		else
-			os << "<err />";
+			os << "{ \"code\": \"error\"}";
+	}
+	else if (path.substr(0,5) == "/web/") {
+		os << get_file(path.substr(1));
 	}
 
 	std::string rbody = os.str();
 	if (rbody == "")
-		return get_header(-1) + rbody;
+		return get_header(-1,path) + rbody;
 	else
-		return get_header(rbody.size()) + rbody;
+		return get_header(rbody.size(),path) + rbody;
 }
 
 

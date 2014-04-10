@@ -60,7 +60,7 @@ void * output_thread(void * args) {
 						memmove(job->buffer, &job->buffer[r], job->dbuffer-r);
 						job->dbuffer -= r;
 					}
-					else {
+					else if (errno != EINTR) {
 						close(job->pfile);
 						job->pfile = -1;
 					}
