@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="ico/favicon.ico">
+
+    <title>Theme Template for Bootstrap</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="css/bootstrap-theme.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="css/theme.css" rel="stylesheet">
+
+    <!-- Just for debugging purposes. Don't actually copy this line! -->
+    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+	
+  </head>
+
+  <body role="document">
+   <div class="container theme-showcase" role="main">
+
+    <!-- Fixed navbar -->
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Job Scheduler</a>
+        </div>
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav" id="tabs">
+            <li class="active"><a class="text-muted" data-toggle="tab" href="#home">Home</a></li>
+            <li><a class="text-muted" data-toggle="tab" href="#queues">Queues</a></li>
+            <li><a href="#running">Running</a></li>
+			<li><a href="#waiting">Waiting</a></li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Actions <b class="caret"></b></a>
+              <ul class="dropdown-menu">
+                <li><a href="#" data-toggle="modal" data-target="#create_queue_modal">Create queue</a></li>
+                <li><a href="#" data-toggle="modal" data-target="#queue_job_modal">Queue job</a></li>
+                <li class="divider"></li>
+                <li class="dropdown-header">Quick actions</li>
+                <li><a href="#pausealljobs">Pause all jobs</a></li>
+                <li><a href="#resumealljobs">Resume all jobs</a></li>
+				<li><a href="#restart">Restart daemon</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </div>
+	
+	<!-- Modal -->
+	<div class="modal fade" id="queue_job_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					<h4 class="modal-title" id="myModalLabel">
+						Queue job
+					</h4>
+				</div>
+				<div class="modal-body">
+					<label for="commandline_field">
+						Commandline
+					</label>
+					<input type="text" id="commandline_field" class="form-control" placeholder='echo "Hello `whoami`"'>
+					<label for="queueid_field">
+						Queue
+					</label>
+					<select class="form-control" id="queueid_field">
+						<option>1</option>
+						<option>2</option>
+						<option>3</option>
+						<option>4</option>
+						<option>5</option>
+					</select>
+					<label for="outputfile_field">
+						Output file
+					</label>
+					<input type="text" id="outputfile_field" class="form-control" placeholder="/home/user/myfile.txt.gz">
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+					<button type="button" class="btn btn-primary">Queue</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Modal -->
+	<div class="modal fade" id="create_queue_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					<h4 class="modal-title" id="myModalLabel">
+						Create Queue
+					</h4>
+				</div>
+
+				<div class="alert alert-danger" id="queue_form_alert">
+					<button type="button" class="close" onclick="$(this).parent().hide();" aria-hidden="true">&times;</button>
+					<strong>Error!</strong> Could not complete your request!
+				</div>
+
+				<form id="create_queue_form">
+					<div class="modal-body">
+
+							<label for="queue_name_field">
+								Queue friendly name
+							</label>
+							<input type="text" id="queue_name_field" class="form-control" placeholder="MyQueue">
+
+							<label for="queue_maxrun_field">
+								Maximum running jobs
+							</label>
+							<input type="text" id="queue_maxrun_field" class="form-control" placeholder="6">
+
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+						<button type="button" class="btn btn-primary" id="create_queue_button">Create</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<div id="tab-content">
+		<div id="home" class="collapse tab-pane fade in active">
+
+			<div class="row">
+				<div class="col-md-6">
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h3 class="panel-title"><span class="glyphicon glyphicon-list"></span>Queues overview</h3>
+						</div>
+						<div class="panel-body">
+							<table class="table table-condensed">
+								<tr>
+									<td>Available queues:</td><td><div id="div_available_queues"></div></td>
+								</tr>
+								<tr>
+									<td>Maximum total jobs:</td><td><div id="div_max_total_jobs"></div></td>
+								</tr>
+							</table>
+						</div>
+					</div>
+				</div>
+				<div class="col-md-6">
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h3 class="panel-title"><span class="glyphicon glyphicon-cog"></span>Jobs overview</h3>
+						</div>
+						<div class="panel-body">
+							<table class="table table-condensed">
+								<thead>
+									<tr>
+										<th>Status</th><th># jobs</th>
+									</tr>
+								</thead>
+								<tr class="success">
+									<td>Running</td><td><div id="div_running_jobs"></div></td>
+								</tr>
+								<tr class="warning">
+									<td>Waiting</td><td><div id="div_waiting_jobs"></div></td>
+								</tr>
+								<tr class="active">
+									<td>Completed</td><td><div id="div_completed_jobs"></div></td>
+								</tr>
+							</table>
+						</div>
+					</div>
+				</div>
+
+			</div>
+		</div>
+
+		<div id="queues" class="collapse tab-pane fade">
+
+			<div class="page-header">
+				<h1>Progress bars</h1>
+			</div>
+
+			<div id="queue_list">
+				
+			</div>
+
+		</div>
+	</div>
+
+   </div>
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+	<script>
+		$("#queue_form_alert").hide();
+		$(document).ready(function () {
+			reload_queues();
+			$("#create_queue_button").on('click', function(e) {
+				$.ajax({
+					type: "POST",
+					url: "/newqueue",
+					dataType: "json",
+					data: {
+						name: $("#queue_name_field").val(),
+						max_run: $("#queue_maxrun_field").val()
+					},
+					success: function(msg){
+						$('#create_queue_modal').modal('hide');
+					},
+					error: function(jqXHR, exception) {
+						$("#queue_form_alert").show();
+					}
+				});
+			});
+		});
+
+		function reload_overview() {
+			/*"div_available_queues"
+			"div_max_total_jobs"
+			"div_running_jobs"
+			"div_waiting_jobs"
+			"div_completed_jobs"*/
+		}
+
+		function queue_details(div_id) {
+			qid = div_id.split("_");
+			qid = qid[qid.length-1];
+			$.ajax({
+				type: "GET",
+				url: "/jobs/" + qid,
+				dataType: "json",
+				success: function(msg){
+					jobs = msg.result[0].jobs;
+					running = 0; waiting = 0; completed = 0; total = 0;
+					$.each(jobs, function (idx, job) {
+						if (job.status == "0") waiting++;
+						if (job.status == "1") running++;
+						if (job.status == "2") completed++;
+						total++;
+					});
+					info = 	'<span class="label label-success spaced">Completed: ' + completed + '</span>' +
+							'<span class="label label-warning spaced">Running: ' + running + '</span>' +
+							'<span class="label label-info    spaced">Waiting: ' + waiting + '</span>';
+					running = running/total*100;
+					completed = completed/total*100;
+					$('#'+div_id).children(".panel-body").children(".progress").children(".progress-bar-success").width(completed+"%")
+					$('#'+div_id).children(".panel-body").children(".progress").children(".progress-bar-warning").width(running+"%")
+					$('#'+div_id).children(".panel-body").children("#panel").children(".queue_info").html(info);
+				},
+				error: function(jqXHR, exception) {
+					$("#queue_form_alert").show();
+				}
+			});
+		}
+
+		function reload_queues() {
+			$.ajax({
+				type: "GET",
+				url: "/queues",
+				dataType: "json",
+				success: function(msg){
+					q = msg.result;
+					queues = "";
+					$.each(q, function (idx, qi) {
+						r = '\
+						<div class="panel panel-default">\
+							<div class="panel-heading">\
+								<h3 class="panel-title" data-toggle="collapse" data-target="#collapse_queue_' + qi.id + '"> \
+									<span class="glyphicon glyphicon-play"></span>' + qi.name +'</h3>\
+							</div>\
+							<div class="panel-collapse collapse" id="collapse_queue_' + qi.id + '"> \
+								<div class="panel-body">\
+									<div class="progress">\
+										<div class="progress-bar progress-bar-success" style="width: 0%"><span class="sr-only">15% Complete (success)</span></div>\
+										<div class="progress-bar progress-bar-warning" style="width: 0%"><span class="sr-only">20% Complete (warning)</span></div>\
+										<div class="progress-bar progress-bar-danger" style="width: 0%"><span class="sr-only">10% Complete (danger)</span></div>\
+									</div>\
+									<div id="panel">\
+										<button type="button" class="btn btn-xs btn-success"><span class="glyphicon glyphicon-play"></span>Resume</button>\
+										<button type="button" class="btn btn-xs btn-warning"><span class="glyphicon glyphicon-pause"></span>Pause</button>\
+										<button type="button" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-stop"></span>Stop</button>\
+										<div class="queue_info"></div>\
+									</div>\
+								</div>\
+							</div>\
+						</div>';
+						queues += r;
+					});
+					$("#queue_list").html(queues);
+					$(".panel-collapse").on('show.bs.collapse', function(e) {
+						queue_details(e.currentTarget.id);
+					});
+				},
+				error: function(jqXHR, exception) {
+					$("#queue_form_alert").show();
+				}
+			});
+		}
+
+
+
+	</script>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+body {
+  padding-top: 70px;
+  padding-bottom: 30px;
+}
+
+.theme-dropdown .dropdown-menu {
+  position: static;
+  display: block;
+  margin-bottom: 20px;
+}
+
+.theme-showcase > p > .btn {
+  margin: 5px 0;
+}
+
+span.glyphicon {
+  margin-right: 5px;
+}
+
+.queue_info {
+  display: inline-block;
+  float: right;
+}
+
+.spaced {
+  margin-right: 5px;
+  margin-left: 5px;
+}
