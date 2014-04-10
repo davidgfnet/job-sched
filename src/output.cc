@@ -48,7 +48,6 @@ void * output_thread(void * args) {
 					int r = read(job->pstdout, &job->buffer[job->dbuffer], sizeof(job->buffer)-job->dbuffer);
 					if (r > 0){
 						job->dbuffer += r;
-						printf("Read!!\n");
 					}
 					else if (r == 0 || !IOTRY_AGAIN(r)) {
 						close(job->pstdout);

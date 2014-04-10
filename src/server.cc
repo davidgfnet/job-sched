@@ -204,7 +204,6 @@ std::string get_response(const std::string & req) {
 		else
 			os << "<err />";
 		
-		std::cerr << "Adding job to queue " << qid << " stdout to " << outputf << " command: " << command << " with env: " << env << " to " << outputf << std::endl;
 	}
 	else if (path.substr(0,5) == "/jobs") {
 		unsigned long long qid = ~0;
@@ -219,13 +218,13 @@ std::string get_response(const std::string & req) {
 			
 			os << "<queue id='" << queues[i].id << "' name='" << queues[i].friendly_name << "'>";
 			std::vector < t_queued_job > jobs = get_jobs(queues[i].id, ~0, -1);
-			for (unsigned int j = 0; i < jobs.size(); j++) {
-				os << "<job id='" << jobs[i].id << "' ";
-				os << "status='" << jobs[i].status << "' ";
-				os << "dateq='" << jobs[i].dateq << "' ";
-				os << "dater='" << jobs[i].dater << "' ";
-				os << "commandline='" << jobs[i].commandline << "' ";
-				os << "output='" << jobs[i].output << "' />";
+			for (unsigned int j = 0; j < jobs.size(); j++) {
+				os << "<job id='" << jobs[j].id << "' ";
+				os << "status='" << jobs[j].status << "' ";
+				os << "dateq='" << jobs[j].dateq << "' ";
+				os << "dater='" << jobs[j].dater << "' ";
+				os << "commandline='" << jobs[j].commandline << "' ";
+				os << "output='" << jobs[j].output << "' />";
 			}
 			os << "</queue>";
 		}
@@ -236,7 +235,6 @@ std::string get_response(const std::string & req) {
 		// Data is in the post body
 		std::string queue_name = urldecode(post_parse(body, "name"));
 		int queue_mrun = atoi(post_parse(body, "max_run").c_str());
-		std::cerr << "New queue " << queue_name << " " << queue_mrun << std::endl;
 		unsigned long long qid = create_queue(queue_name, queue_mrun);
 		if (qid != ~0) {
 			pthread_mutex_lock(&queue_mutex);

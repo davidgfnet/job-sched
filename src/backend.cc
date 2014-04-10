@@ -50,6 +50,13 @@ void backend_setup() {
 	"DROP table IF EXISTS `jobs`;"
 	"DROP table IF EXISTS `queues`;"
 	""
+	"CREATE TABLE IF NOT EXISTS `queues` ("
+	"  `id` BIGINT(20) unsigned NOT NULL AUTO_INCREMENT,"
+	"  `name` varchar(256) DEFAULT '',"
+	"  `max_run` int(10) DEFAULT '0',"
+	"  PRIMARY KEY (`id`)"
+	") ENGINE=InnoDB DEFAULT CHARSET=utf8;"
+	""
 	"CREATE TABLE IF NOT EXISTS `jobs` ("
 	"  `id` BIGINT(20) unsigned NOT NULL AUTO_INCREMENT,"
 	"  `qid` BIGINT(20) unsigned NOT NULL,"
@@ -60,18 +67,14 @@ void backend_setup() {
 	"  `output` varchar(4096) DEFAULT '',"
 	"  `dateQueued` timestamp NULL DEFAULT CURRENT_TIMESTAMP,"
 	"  `dateStarted` timestamp NULL DEFAULT NULL,"
-	"  PRIMARY KEY (`id`)"
+	"  PRIMARY KEY (`id`),"
+	"  FOREIGN KEY (`qid`) references queues(`id`)"
 	") ENGINE=InnoDB DEFAULT CHARSET=utf8;"
-	""
-	"CREATE TABLE IF NOT EXISTS `queues` ("
-	"  `id` BIGINT(20) unsigned NOT NULL AUTO_INCREMENT,"
-	"  `name` varchar(256) DEFAULT '',"
-	"  `max_run` int(10) DEFAULT '0',"
-	"  PRIMARY KEY (`id`)"
-	") ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+	"";
+
 
 	my_connnect_reconnect();
-	if (!mysql_query(mysql_connection, query)) {
+	if (mysql_query(mysql_connection, query)) {
 		printf("MySQL error %s\n", mysql_error(mysql_connection));
 	}
 }
