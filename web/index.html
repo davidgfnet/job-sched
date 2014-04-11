@@ -259,10 +259,10 @@
 		// Open Queue delete modal / Delete button
 		$("#queue_delete_modal").on("show.bs.modal", function (e) {
 			$("#queue_delete_modal_qname").html(e.relatedTarget.dataset["qname"]);
-			$("#delete_queue_button").dataset['qid'] = e.relatedTarget.dataset["qid"];
+			$("#delete_queue_button").data('qid',e.relatedTarget.dataset["qid"]);
 		});
 		$("#delete_queue_button").on("click", function (e) {
-			qid = e.target.dataset["qid"]);
+			qid = $("#delete_queue_button").data("qid");
 			$.ajax({
 				type: "GET",
 				url: "/delqueue/" + qid,

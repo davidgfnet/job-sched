@@ -304,7 +304,7 @@ std::string get_response(const std::string & req) {
 	}
 	else if (path.substr(0,10) == "/delqueue/") {
 		// Data is in the post body
-		int qid = atoi(post_parse(body, path.substr(10)).c_str());
+		int qid = atoi(path.substr(10).c_str());
 		if (delete_queue(qid))
 			os << "{ \"code\": \"ok\"}";
 		else

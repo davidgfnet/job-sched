@@ -118,6 +118,7 @@ bool delete_queue(unsigned long long qid) {
 		queues.erase(queues.begin() + qidx);
 	}
 	pthread_mutex_unlock(&queue_mutex);
+	return true;
 }
 
 
