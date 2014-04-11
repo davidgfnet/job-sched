@@ -88,7 +88,7 @@ void serve_queries(int port) {
 					if (r > 0) {
 						reqs[i].response = reqs[i].response.substr(r);
 					}
-					if (!IOTRY_AGAIN(r) || reqs[i].response.size() == 0) {
+					if ((!IOTRY_AGAIN(r) && r < 0) || reqs[i].response.size() == 0) {
 						reqs[i].status = sError;
 					}
 				}
@@ -299,6 +299,14 @@ std::string get_response(const std::string & req) {
 			pthread_mutex_unlock(&queue_mutex);
 			os << "{ \"code\": \"ok\"}";
 		}
+		else
+			os << "{ \"code\": \"error\"}";
+	}
+	else if (path.substr(0,10) == "/delqueue/") {
+		// Data is in the post body
+		int qid = atoi(post_parse(body, path.substr(10)).c_str());
+		if (delete_queue(qid))
+			os << "{ \"code\": \"ok\"}";
 		else
 			os << "{ \"code\": \"error\"}";
 	}

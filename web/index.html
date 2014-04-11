@@ -8,12 +8,14 @@
     <meta name="author" content="">
     <link rel="shortcut icon" href="ico/favicon.ico">
 
-    <title>Theme Template for Bootstrap</title>
+    <title>Job Scheduler Web Panel</title>
 
     <!-- Bootstrap core CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap theme -->
     <link href="css/bootstrap-theme.min.css" rel="stylesheet">
+    <!-- Font awesome -->
+    <link href="css/font-awesome.min.css" rel="stylesheet">
 
     <!-- Custom styles for this template -->
     <link href="css/theme.css" rel="stylesheet">
@@ -46,8 +48,8 @@
         </div>
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav" id="tabs">
-            <li class="active"><a class="text-muted" data-toggle="tab" href="#home">Home</a></li>
-            <li><a class="text-muted" data-toggle="tab" href="#queues">Queues</a></li>
+            <li class="active"><a class="text-muted" data-toggle="tab" href="#home" id="nav-home">Home</a></li>
+            <li><a class="text-muted" data-toggle="tab" href="#queues" id="nav-queues">Queues</a></li>
             <li><a href="#running">Running</a></li>
 			<li><a href="#waiting">Waiting</a></li>
             <li class="dropdown">
@@ -67,7 +69,7 @@
       </div>
     </div>
 	
-	<!-- Modal -->
+	<!-- Modal for Queue Job -->
 	<div class="modal fade" id="queue_job_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
 		<div class="modal-dialog">
 			<div class="modal-content">
@@ -105,7 +107,7 @@
 		</div>
 	</div>
 
-	<!-- Modal -->
+	<!-- Modal for Add Queue  -->
 	<div class="modal fade" id="create_queue_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
 		<div class="modal-dialog">
 			<div class="modal-content">
@@ -143,6 +145,35 @@
 			</div>
 		</div>
 	</div>
+	
+	<!-- Modal for Delete Queue  -->
+	<div class="modal fade" id="queue_delete_modal" tabindex="-1" role="dialog" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					<h4 class="modal-title" id="myModalLabel">
+						Delete Queue
+					</h4>
+				</div>
+
+				<div class="alert alert-danger" id="queue_delete_alert">
+					<button type="button" class="close" onclick="$(this).parent().hide();" aria-hidden="true">&times;</button>
+					<strong>Error!</strong> Could not complete your request!
+				</div>
+				
+				<div class="modal-body">
+					Are you sure you want to delete <strong><span id="queue_delete_modal_qname"></span></strong> queue?
+				</div>
+
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+					<button type="button" class="btn btn-danger" id="delete_queue_button">Delete</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
 
 	<div id="tab-content">
 		<div id="home" class="collapse tab-pane fade in active">
@@ -197,11 +228,17 @@
 		<div id="queues" class="collapse tab-pane fade">
 
 			<div class="page-header">
-				<h1>Progress bars</h1>
+				<h3>Available</h3>
 			</div>
 
 			<div id="queue_list">
 				
+			</div>
+			
+			<div>
+				<button type="button" class="btn btn-md" href="#" data-toggle="modal" data-target="#create_queue_modal">
+					<span class="fa fa-asterisk"></span> Create queue
+				</button>
 			</div>
 
 		</div>
@@ -217,8 +254,37 @@
     <script src="js/bootstrap.min.js"></script>
 	<script>
 		$("#queue_form_alert").hide();
+		$("#question_alert").hide();
+		
+		// Open Queue delete modal / Delete button
+		$("#queue_delete_modal").on("show.bs.modal", function (e) {
+			$("#queue_delete_modal_qname").html(e.relatedTarget.dataset["qname"]);
+			$("#delete_queue_button").dataset['qid'] = e.relatedTarget.dataset["qid"];
+		});
+		$("#delete_queue_button").on("click", function (e) {
+			qid = e.target.dataset["qid"]);
+			$.ajax({
+				type: "GET",
+				url: "/delqueue/" + qid,
+				dataType: "json",
+				success: function(msg){
+					$('#queue_delete_modal').modal('hide');
+					reload_queues();
+				},
+				error: function(jqXHR, exception) {
+					$("#queue_delete_alert").show();
+				}
+			});
+		});
+		
 		$(document).ready(function () {
 			reload_queues();
+			$('a[data-toggle="tab"]').on("show.bs.tab", function (e) {
+				if (e.target.id == "nav-home")
+					reload_home();
+				else if (e.target.id == "nav-home")
+					reload_queues();
+			});
 			$("#create_queue_button").on('click', function(e) {
 				$.ajax({
 					type: "POST",
@@ -230,6 +296,7 @@
 					},
 					success: function(msg){
 						$('#create_queue_modal').modal('hide');
+						reload_queues();
 					},
 					error: function(jqXHR, exception) {
 						$("#queue_form_alert").show();
@@ -246,14 +313,17 @@
 			"div_completed_jobs"*/
 		}
 
+		var open_queues = {};
 		function queue_details(div_id) {
 			qid = div_id.split("_");
 			qid = qid[qid.length-1];
+			info = '<div><i class="fa fa-spinner fa-spin fa-2x"></i></div>';
+			$('#'+div_id).children(".panel-body").children("#panel").children(".queue_info").html(info);
 			$.ajax({
 				type: "GET",
 				url: "/jobs/" + qid,
 				dataType: "json",
-				success: function(msg){
+				success: function(msg) {
 					jobs = msg.result[0].jobs;
 					running = 0; waiting = 0; completed = 0; total = 0;
 					$.each(jobs, function (idx, job) {
@@ -262,9 +332,9 @@
 						if (job.status == "2") completed++;
 						total++;
 					});
-					info = 	'<span class="label label-success spaced">Completed: ' + completed + '</span>' +
-							'<span class="label label-warning spaced">Running: ' + running + '</span>' +
-							'<span class="label label-info    spaced">Waiting: ' + waiting + '</span>';
+					info = 	'<div class="label label-success spaced">Completed: ' + completed + '</div>' +
+							'<div class="label label-warning spaced">Running: ' + running + '</div>' +
+							'<div class="label label-info    spaced">Waiting: ' + waiting + '</div>';
 					running = running/total*100;
 					completed = completed/total*100;
 					$('#'+div_id).children(".panel-body").children(".progress").children(".progress-bar-success").width(completed+"%")
@@ -276,8 +346,13 @@
 				}
 			});
 		}
+		
+		function reload_home() {
+			
+		}
 
 		function reload_queues() {
+			$("#queue_list").html('<div class="container"><i class="fa fa-spinner fa-spin fa-4x"></i></div>');
 			$.ajax({
 				type: "GET",
 				url: "/queues",
@@ -285,6 +360,7 @@
 				success: function(msg){
 					q = msg.result;
 					queues = "";
+					// Add queues
 					$.each(q, function (idx, qi) {
 						r = '\
 						<div class="panel panel-default">\
@@ -303,6 +379,7 @@
 										<button type="button" class="btn btn-xs btn-success"><span class="glyphicon glyphicon-play"></span>Resume</button>\
 										<button type="button" class="btn btn-xs btn-warning"><span class="glyphicon glyphicon-pause"></span>Pause</button>\
 										<button type="button" class="btn btn-xs btn-danger"><span class="glyphicon glyphicon-stop"></span>Stop</button>\
+										<button type="button" class="btn btn-xs btn-danger" data-toggle="modal" data-target="#queue_delete_modal" data-qname="' +qi.name+ '" data-qid="' +qi.id+ '"><span class="fa fa-times"></span> Delete</button>\
 										<div class="queue_info"></div>\
 									</div>\
 								</div>\
@@ -311,8 +388,20 @@
 						queues += r;
 					});
 					$("#queue_list").html(queues);
+					// Register open/close
 					$(".panel-collapse").on('show.bs.collapse', function(e) {
+						open_queues[e.currentTarget.id] = 1;
 						queue_details(e.currentTarget.id);
+					});
+					$(".panel-collapse").on('hide.bs.collapse', function(e) {
+						delete open_queues[e.currentTarget.id];
+					});
+					// Open the queues that were previously opened
+					$.each(q, function (idx, qi) {
+						qn = 'collapse_queue_' + qi.id;
+						if (qn in open_queues) {
+							$('#'+qn).collapse("show");
+						}
 					});
 				},
 				error: function(jqXHR, exception) {
@@ -321,7 +410,9 @@
 			});
 		}
 
-
+		function delete_queue() {
+		
+		}
 
 	</script>
   </body>

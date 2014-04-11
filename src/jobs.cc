@@ -27,6 +27,10 @@ int get_next_job (unsigned long long qid, t_job * j) {
 	return 1;
 }
 
+void kill_job(t_job * j) {
+	kill(j->pid, SIGKILL);
+}
+
 void spawn_job (t_job * j) {
 	// Create pipes for stdout
 	int pipes[2];

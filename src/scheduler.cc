@@ -98,4 +98,26 @@ void * scheduler_thread(void * args) {
 	}
 }
 
+// Destroy a queue: kill all running programs, close all FD and remove it!
+bool delete_queue(unsigned long long qid) {
+	pthread_mutex_lock(&queue_mutex);
+	unsigned int qidx;
+	for (qidx = 0; qidx < queues.size(); qidx++) {
+		if (queues[qidx].id == qid)
+			break;
+	}
+	if (qidx < queues.size()) {
+		for (unsigned int i = 0; i < queues[qidx].running.size(); i++) {
+			kill_job(&queues[qidx].running[i]);
+			if (queues[qidx].running[i].pfile >= 0)
+				close(queues[qidx].running[i].pfile);
+			if (queues[qidx].running[i].pstdout >= 0)
+				close(queues[qidx].running[i].pstdout);
+		}
+		delete_queue_backend(queues[qidx].id);
+		queues.erase(queues.begin() + qidx);
+	}
+	pthread_mutex_unlock(&queue_mutex);
+}
+
 

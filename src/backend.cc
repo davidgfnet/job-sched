@@ -158,6 +158,16 @@ unsigned long long create_queue(std::string name, long max_jobs) {
 	return ~0;
 }
 
+// Delete a queue
+void delete_queue_backend(unsigned long long qid) {
+	std::ostringstream query;
+	query << "DELETE FROM `jobs` WHERE `qid`=" << qid << ";";
+	query << "DELETE FROM `queues` WHERE `id`=" << qid << ";";
+	std::string sql = query.str();
+		
+	mysql_query(mysql_connection, sql.c_str());
+}
+
 // Insert a new job into queue
 bool create_job(unsigned long long qid, const std::string & cmdline, const std::string & env, const std::string &outf, int prio) {
 	std::ostringstream query;
