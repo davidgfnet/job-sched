@@ -38,7 +38,7 @@ pid_t wait_timeout(int * s) {
 
 	for (int i = 0; i < 5; i++) {
 		pid_t p = waitpid(-1, s, WNOHANG);
-		if (p >= 0) return p;
+		if (p > 0) return p;  // NOHANG returns zero :(
 		sleep(1);
 	}
 	return -1;
