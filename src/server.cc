@@ -250,7 +250,7 @@ std::string get_response(const std::string & req) {
 		std::string outputf = urldecode(post_parse(body, "output"));
 		int prio            = atoi(post_parse(body, "prio").c_str());
 		
-		if (create_job(qid, command, env, outputf, prio))
+		if (backend_create_job(qid, command, env, outputf, prio))
 			os << "{ \"code\": \"ok\"}";
 		else
 			os << "{ \"code\": \"error\"}";
@@ -309,7 +309,7 @@ std::string get_response(const std::string & req) {
 		// Data is in the post body
 		std::string queue_name = urldecode(post_parse(body, "name"));
 		int queue_mrun = atoi(post_parse(body, "max_run").c_str());
-		unsigned long long qid = create_queue(queue_name, queue_mrun);
+		unsigned long long qid = backend_create_queue(queue_name, queue_mrun);
 		if (qid != ~0) {
 			pthread_mutex_lock(&queue_mutex);
 			t_job_queue qu;

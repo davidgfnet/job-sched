@@ -80,7 +80,6 @@ void * scheduler_thread(void * args) {
 		// Wait for a job to finish
 		int s;
 		pid_t f = wait_timeout(&s);
-		printf("%d\n", f);
 
 		// Mark job as done
 		pthread_mutex_lock(&queue_mutex);
@@ -126,7 +125,7 @@ bool delete_queue(unsigned long long qid) {
 			if (queues[qidx].running[i].pstdout >= 0)
 				close(queues[qidx].running[i].pstdout);
 		}
-		delete_queue_backend(queues[qidx].id);
+		backend_delete_queue(queues[qidx].id);
 		queues.erase(queues.begin() + qidx);
 	}
 	pthread_mutex_unlock(&queue_mutex);
