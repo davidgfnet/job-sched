@@ -23,6 +23,7 @@ int main(int argc, char ** argv) {
 		exit(1);
 	}
 	
+	bool anyip = false;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp("-p", argv[i]) == 0) {
 			i++;
@@ -38,6 +39,8 @@ int main(int argc, char ** argv) {
 			fprintf(stderr, "Backend reset!\n");
 			exit(0);
 		}
+		else if (strcmp("-a", argv[i]) == 0)
+			anyip = true;
 	}
 	
 	// Load initial val.
@@ -50,7 +53,7 @@ int main(int argc, char ** argv) {
 	pthread_create (&output, NULL, &output_thread,    &stop);
 	
 	// Start a server to receive queries
-	serve_queries(8080, false);
+	serve_queries(8080, anyip);
 }
 
 
