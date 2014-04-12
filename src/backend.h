@@ -10,4 +10,5 @@ void db_load_startup();
 unsigned long long create_queue(std::string name, long max_jobs);
 bool create_job(unsigned long long qid, const std::string & cmdline, const std::string & env, const std::string &outf, int prio);
 void delete_queue_backend(unsigned long long qid);
+void get_job_summary(unsigned int * running, unsigned int * waiting, unsigned int * completed);
 

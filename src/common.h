@@ -52,6 +52,7 @@ struct t_job {
 };
 struct t_queued_job {
 	unsigned long long id;    // Job ID
+	unsigned long long qid;   // Queue ID
 	std::string commandline;  // Commandline to execute
 	std::string output;       // File to output the process stdout
 	std::string environ;      // Environment variables

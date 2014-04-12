@@ -8,7 +8,7 @@
 #include "common.h"
 #include "backend.h"
 
-pid_t wait_timeout(int * s) {
+pid_t wait_timeout_(int * s) {
 	sigset_t mask;
 	sigset_t orig_mask;
 	struct timespec timeout;
@@ -34,17 +34,29 @@ pid_t wait_timeout(int * s) {
 	return wait(s);
 }
 
+pid_t wait_timeout(int * s) {
+
+	for (int i = 0; i < 5; i++) {
+		pid_t p = waitpid(-1, s, WNOHANG);
+		if (p >= 0) return p;
+		sleep(1);
+	}
+	return -1;
+}
+
+
 /*
  * Thread responsible for waiting for jobs to finish
  * and to spawn new jobs if any empty slot.
 **/
 void * scheduler_thread(void * args) {
-	int online_jobs = 0;
 	int * stop = (int*)args;
 	while (! (*stop)) {
 		// Check and add spawn new jobs
+		int online_jobs;
 		do {
 			pthread_mutex_lock(&queue_mutex);
+			online_jobs = 0;
 			for (unsigned int i = 0; i < queues.size(); i++) {
 				while (queues[i].running.size() < queues[i].max_running) {
 					t_job j;
@@ -53,10 +65,10 @@ void * scheduler_thread(void * args) {
 
 					spawn_job(&j);
 					queues[i].running.push_back(j);
-					online_jobs++;
 					
 					set_job_status(j.id, 1);
 				}
+				online_jobs += queues[i].running.size();
 			}
 			pthread_mutex_unlock(&queue_mutex);
 			
@@ -68,6 +80,7 @@ void * scheduler_thread(void * args) {
 		// Wait for a job to finish
 		int s;
 		pid_t f = wait_timeout(&s);
+		printf("%d\n", f);
 
 		// Mark job as done
 		pthread_mutex_lock(&queue_mutex);
@@ -90,7 +103,6 @@ void * scheduler_thread(void * args) {
 					
 					job_finished(&queues[i].running[j]);
 					queues[i].running.erase(queues[i].running.begin() + j);
-					online_jobs--;
 				}
 			}
 		}

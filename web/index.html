@@ -50,18 +50,29 @@
           <ul class="nav navbar-nav" id="tabs">
             <li class="active"><a class="text-muted" data-toggle="tab" href="#home" id="nav-home">Home</a></li>
             <li><a class="text-muted" data-toggle="tab" href="#queues" id="nav-queues">Queues</a></li>
-            <li><a href="#running">Running</a></li>
-			<li><a href="#waiting">Waiting</a></li>
+            <li><a class="text-muted" data-toggle="tab" href="#running" id="nav-running">Running</a></li>
+            <li><a class="text-muted" data-toggle="tab" href="#waiting" id="nav-waiting">Waiting</a></li>
+            <li><a class="text-muted" data-toggle="tab" href="#completed" id="nav-completed">Completed</a></li>
             <li class="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown">Actions <b class="caret"></b></a>
               <ul class="dropdown-menu">
-                <li><a href="#" data-toggle="modal" data-target="#create_queue_modal">Create queue</a></li>
-                <li><a href="#" data-toggle="modal" data-target="#queue_job_modal">Queue job</a></li>
+                <li><a href="#" data-toggle="modal" data-target="#create_queue_modal">
+                	<span class="fa fa-asterisk rspaced"></span>Create queue
+            	</a></li>
+                <li><a href="#" data-toggle="modal" data-target="#queue_job_modal">
+                	<span class="fa fa-plus-square rspaced"></span>Queue job
+                </a></li>
                 <li class="divider"></li>
                 <li class="dropdown-header">Quick actions</li>
-                <li><a href="#pausealljobs">Pause all jobs</a></li>
-                <li><a href="#resumealljobs">Resume all jobs</a></li>
-				<li><a href="#restart">Restart daemon</a></li>
+                <li><a href="#pausealljobs">
+	                <span class="fa fa-pause rspaced"></span>Pause all jobs
+                </a></li>
+                <li><a href="#resumealljobs">
+                	<span class="fa fa-play rspaced"></span>Resume all jobs
+                </a></li>
+				<li><a href="#restart">
+					<span class="fa fa-refresh rspaced"></span>Restart daemon
+				</a></li>
               </ul>
             </li>
           </ul>
@@ -242,6 +253,28 @@
 			</div>
 
 		</div>
+		
+		<div id="running" class="collapse tab-pane fade">
+			<div class="page-header">
+				<h3>Running jobs</h3>
+			</div>
+			<div id="running_list"></div>
+		</div>
+		<div id="waiting" class="collapse tab-pane fade">
+			<div class="page-header">
+				<h3>Waiting jobs</h3>
+			</div>
+			<div id="waiting_list"></div>
+		</div>
+		<div id="completed" class="collapse tab-pane fade">
+			<div class="page-header">
+				<h3>Completed jobs</h3>
+			</div>
+			<div id="completed_list"></div>
+		</div>
+
+		
+		
 	</div>
 
    </div>
@@ -254,7 +287,7 @@
     <script src="js/bootstrap.min.js"></script>
 	<script>
 		$("#queue_form_alert").hide();
-		$("#question_alert").hide();
+		$("#queue_delete_alert").hide();
 		
 		// Open Queue delete modal / Delete button
 		$("#queue_delete_modal").on("show.bs.modal", function (e) {
@@ -278,12 +311,18 @@
 		});
 		
 		$(document).ready(function () {
-			reload_queues();
+			reload_home();
 			$('a[data-toggle="tab"]').on("show.bs.tab", function (e) {
 				if (e.target.id == "nav-home")
 					reload_home();
-				else if (e.target.id == "nav-home")
+				else if (e.target.id == "nav-queues")
 					reload_queues();
+				else if (e.target.id == "nav-running")
+					reload_jobs("run", "running_list");
+				else if (e.target.id == "nav-waiting")
+					reload_jobs("wait", "waiting_list");
+				else if (e.target.id == "nav-completed")
+					reload_jobs("comp", "completed_list");
 			});
 			$("#create_queue_button").on('click', function(e) {
 				$.ajax({
@@ -305,12 +344,22 @@
 			});
 		});
 
-		function reload_overview() {
-			/*"div_available_queues"
-			"div_max_total_jobs"
-			"div_running_jobs"
-			"div_waiting_jobs"
-			"div_completed_jobs"*/
+		function reload_home() {
+			$.ajax({
+				type: "GET",
+				url: "/summary",
+				dataType: "json",
+				success: function(msg) {
+					$("#div_running_jobs").html(msg.jobs.running);
+					$("#div_waiting_jobs").html(msg.jobs.waiting);
+					$("#div_completed_jobs").html(msg.jobs.completed);
+					$("#div_available_queues").html(msg.queues.total);
+					$("#div_max_total_jobs").html(msg.queues.maxjobs);
+				},
+				error: function(jqXHR, exception) {
+					$("#queue_form_alert").show();
+				}
+			});
 		}
 
 		var open_queues = {};
@@ -347,10 +396,34 @@
 			});
 		}
 		
-		function reload_home() {
-			
-		}
+		function reload_jobs(state, divs) {
+			$("#"+divs).html('<div class="container"><i class="fa fa-spinner fa-spin fa-4x"></i></div>');
+			$.ajax({
+				type: "GET",
+				url: "/jobs//" + state,
+				dataType: "json",
+				success: function(msg){
+					qs = msg.result;
+					res = '<table class="table">';
+					res += '<tr><th>Job ID</th><th>Queue</th><th>Queued</th><th>Commandline</th></tr>';
+					// Add jobs
+					$.each(qs, function (idx, queue) {
+						$.each(queue.jobs, function (idx, job) {
+							queued = (new Date(job.dateq * 1000).toLocaleString());
+							res += '<tr><td>' + job.id + '</td><td>' + queue.name + '</td>';
+							res += '<td>' + queued + '</td><td>' + job.commandline + '</td></tr>\n';
+						});
+					});
+					res += '</table>';
+					$("#"+divs).html(res);
+				},
+				error: function(jqXHR, exception) {
+					$("#queue_form_alert").show();
+				}
+			});
 
+		}
+		
 		function reload_queues() {
 			$("#queue_list").html('<div class="container"><i class="fa fa-spinner fa-spin fa-4x"></i></div>');
 			$.ajax({

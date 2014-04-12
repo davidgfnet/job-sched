@@ -255,10 +255,13 @@ std::string get_response(const std::string & req) {
 		else
 			os << "{ \"code\": \"error\"}";
 	}
-	else if (path.substr(0,5) == "/jobs") {
-		unsigned long long qid = ~0;
-		if (path.size() > 6 and path[5] == '/')
-			qid = atoi(path.substr(6).c_str());
+	else if (path.substr(0,5) == "/jobs") { // Form /jobs/queueid/status
+		std::vector <std::string > fields = Tokenize(path.substr(5),"/");
+		unsigned long long qid = (fields.size() > 1 && fields[1] != "") ? atoi(fields[1].c_str()) : ~0;
+		std::string st = fields.size() > 2 ? fields[2] : "";
+		int status = (st == "wait" ? 0 :
+						st == "run" ? 1 :
+						st == "comp" ? 2 : -1);
 		
 		// Get jobs for a given queue (or all queues)
 		os << "{ \"code\": \"ok\", \"result\": [ ";
@@ -268,7 +271,7 @@ std::string get_response(const std::string & req) {
 			if (qid == ~0 && i != 0) os << ",";
 
 			os << "{ \"qid\": \"" << queues[i].id << "\", \"name\": \"" << queues[i].friendly_name << "\", \"jobs\": [";
-			std::vector < t_queued_job > jobs = get_jobs(queues[i].id, ~0, -1);
+			std::vector < t_queued_job > jobs = get_jobs(queues[i].id, ~0, status);
 			for (unsigned int j = 0; j < jobs.size(); j++) {
 				if (j != 0) os << ",";
 				os << "{ \"id\":\"" << jobs[j].id << "\", ";
@@ -282,6 +285,25 @@ std::string get_response(const std::string & req) {
 		}
 		pthread_mutex_unlock(&queue_mutex);
 		os << "]}";
+	}
+	else if (path == "/summary") {
+		pthread_mutex_lock(&queue_mutex);
+		unsigned int max_jobs = 0;
+		unsigned int nq = queues.size();
+		for (unsigned int i = 0; i < queues.size(); i++)
+			max_jobs += queues[i].max_running;
+		pthread_mutex_unlock(&queue_mutex);
+		
+		unsigned int running, waiting, completed;
+		get_job_summary(&running, &waiting, &completed);
+		
+		os << "{ \"code\": \"ok\", \"jobs\": ";
+		os << "{ \"running\": \"" << running << "\", ";
+		os << "  \"waiting\": \"" << waiting << "\", ";
+		os << "  \"completed\": \"" << completed << "\" }, ";
+		os << " \"queues\" : { ";
+		os << "  \"total\": \"" << nq << "\", ";
+		os << "  \"maxjobs\": \"" << max_jobs << "\" } } ";
 	}
 	else if (path == "/newqueue") {
 		// Data is in the post body

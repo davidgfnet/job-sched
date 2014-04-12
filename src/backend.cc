@@ -100,13 +100,37 @@ std::vector < t_job_queue > get_queues() {
 }
 
 // Get up to Max jobs for a queue
+void get_job_summary(unsigned int * running, unsigned int * waiting, unsigned int * completed) {
+	unsigned int res[3];
+	for (int i = 0; i < 3; i++) {
+		std::ostringstream query;
+		query << "SELECT COUNT(*) FROM `jobs` WHERE `status`=" << i << ";";
+		std::string sql = query.str();
+	
+		mysql_query(mysql_connection, sql.c_str());
+		MYSQL_RES *result = mysql_store_result(mysql_connection);
+		if (result) {
+			MYSQL_ROW row = mysql_fetch_row(result);
+			res[i] = atoi(row[0]);
+		}
+	}
+	*running = res[0];
+	*waiting = res[1];
+	*completed = res[2];
+}
+
+// Get up to Max jobs for a queue
 std::vector < t_queued_job > get_jobs(unsigned long long qid, unsigned long long max, int status) {
 	std::ostringstream query;
-	query << "SELECT `id`,`status`,`commandline`,`output`,`environment`,UNIX_TIMESTAMP(`dateQueued`),UNIX_TIMESTAMP(`dateStarted`) FROM `jobs` ";
-	if (status >= 0)
+	query << "SELECT `id`,`qid`,`status`,`commandline`,`output`,`environment`,UNIX_TIMESTAMP(`dateQueued`),UNIX_TIMESTAMP(`dateStarted`) FROM `jobs` ";
+
+	if (status >= 0 && qid != ~0)
 		query << " WHERE `status`=" << status << " AND `qid`=" << qid;
-	else
+	else if (status >= 0 && qid == ~0)
+		query << " WHERE `status`=" << status;
+	else if (status < 0 && qid != ~0)
 		query << " WHERE `qid`=" << qid;
+	
 	query << " ORDER BY `prio` DESC, `id` ASC LIMIT " << max;
 	std::string sql = query.str();
 		
@@ -118,12 +142,13 @@ std::vector < t_queued_job > get_jobs(unsigned long long qid, unsigned long long
 		while (row = mysql_fetch_row(result)) {
 			t_queued_job t;
 			t.id = atoi(row[0]);
-			t.status = atoi(row[1]);
-			t.commandline = std::string(row[2]);
-			t.output = std::string(row[3]);
-			t.environ = std::string(row[4]);
-			t.dateq = atoi(row[5]);
-			t.dater = row[6] ? atoi(row[6]) : 0;
+			t.qid = atoi(row[1]);
+			t.status = atoi(row[2]);
+			t.commandline = std::string(row[3]);
+			t.output = std::string(row[4]);
+			t.environ = std::string(row[5]);
+			t.dateq = atoi(row[6]);
+			t.dater = row[7] ? atoi(row[7]) : 0;
 			ret.push_back(t);
 		}
 	}
