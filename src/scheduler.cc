@@ -110,7 +110,7 @@ void * scheduler_thread(void * args) {
 }
 
 // Destroy a queue: kill all running programs, close all FD and remove it!
-bool delete_queue(unsigned long long qid) {
+bool delete_queue(unsigned long long qid, bool truncate) {
 	pthread_mutex_lock(&queue_mutex);
 	unsigned int qidx;
 	for (qidx = 0; qidx < queues.size(); qidx++) {
@@ -125,8 +125,9 @@ bool delete_queue(unsigned long long qid) {
 			if (queues[qidx].running[i].pstdout >= 0)
 				close(queues[qidx].running[i].pstdout);
 		}
-		backend_delete_queue(queues[qidx].id);
-		queues.erase(queues.begin() + qidx);
+		backend_delete_queue(queues[qidx].id, truncate);
+		if (!truncate)
+			queues.erase(queues.begin() + qidx);
 	}
 	pthread_mutex_unlock(&queue_mutex);
 	return true;

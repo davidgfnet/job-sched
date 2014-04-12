@@ -81,7 +81,7 @@ int get_next_job (unsigned long long qid, t_job * j);
 void spawn_job (t_job * j);
 void kill_job(t_job * j);
 void job_finished(t_job * j);
-bool delete_queue(unsigned long long qid);
+bool delete_queue(unsigned long long qid, bool truncate);
 void * scheduler_thread(void * args);
 void * output_thread(void * args);
 void serve_queries();

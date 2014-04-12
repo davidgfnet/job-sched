@@ -208,6 +208,24 @@ std::string json_escape(const std::string & s) {
 	return ret;
 }
 
+unsigned long long get_qid(std::string path) {
+	path = urldecode(path);
+	if (path.size() == 0) return ~0;
+	// Queue ID
+	if (path[0] >= '0' && path[0] <= '9')
+		return atol(path.c_str());
+	// Queue name
+	pthread_mutex_lock(&queue_mutex);
+	for (unsigned int i = 0; i < queues.size(); i++) {
+		if (queues[i].friendly_name == path) {
+			pthread_mutex_unlock(&queue_mutex);
+			return queues[i].id;
+		}
+	}
+	pthread_mutex_unlock(&queue_mutex);
+	return ~0;
+}
+
 // Requests:
 // /queues
 // /jobs
@@ -243,21 +261,21 @@ std::string get_response(const std::string & req) {
 	else if (path.substr(0,9) == "/queuejob") {
 		unsigned long long qid = ~0;
 		if (path.size() > 10 and path[9] == '/')
-			qid = atoi(path.substr(10).c_str());
+			qid = get_qid(path.substr(10));
 		
 		std::string env     = urldecode(post_parse(body, "env"));
 		std::string command = urldecode(post_parse(body, "command"));
 		std::string outputf = urldecode(post_parse(body, "output"));
 		int prio            = atoi(post_parse(body, "prio").c_str());
 		
-		if (backend_create_job(qid, command, env, outputf, prio))
+		if (qid != ~0 && backend_create_job(qid, command, env, outputf, prio))
 			os << "{ \"code\": \"ok\"}";
 		else
 			os << "{ \"code\": \"error\"}";
 	}
-	else if (path.substr(0,5) == "/jobs") { // Form /jobs/queueid/status
+	else if (path.substr(0,5) == "/jobs") { // Form /jobs/queueid-name/status
 		std::vector <std::string > fields = Tokenize(path.substr(5),"/");
-		unsigned long long qid = (fields.size() > 1 && fields[1] != "") ? atoi(fields[1].c_str()) : ~0;
+		unsigned long long qid = (fields.size() > 1 && fields[1] != "") ? get_qid(fields[1]) : ~0;
 		std::string st = fields.size() > 2 ? fields[2] : "";
 		int status = (st == "wait" ? 0 :
 						st == "run" ? 1 :
@@ -324,10 +342,16 @@ std::string get_response(const std::string & req) {
 		else
 			os << "{ \"code\": \"error\"}";
 	}
-	else if (path.substr(0,10) == "/delqueue/") {
+	else if (path.substr(0,10) == "/delqueue/" ||
+			path.substr(0,10) == "/trnqueue/") {
 		// Data is in the post body
-		int qid = atoi(path.substr(10).c_str());
-		if (delete_queue(qid))
+		unsigned long long qid = ~0;
+		if (path.size() > 10)
+			qid = get_qid(path.substr(10));
+
+		bool only_truncate = path.substr(0,10) == "/trnqueue/";
+
+		if (qid != ~0 && delete_queue(qid, only_truncate))
 			os << "{ \"code\": \"ok\"}";
 		else
 			os << "{ \"code\": \"error\"}";

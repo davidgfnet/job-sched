@@ -180,10 +180,11 @@ unsigned long long my_backend_create_queue(std::string name, long max_jobs) {
 }
 
 // Delete a queue
-void my_backend_delete_queue(unsigned long long qid) {
+void my_backend_delete_queue(unsigned long long qid, bool truncate) {
 	std::ostringstream query;
 	query << "DELETE FROM `jobs` WHERE `qid`=" << qid << ";";
-	query << "DELETE FROM `queues` WHERE `id`=" << qid << ";";
+	if (!truncate)
+		query << "DELETE FROM `queues` WHERE `id`=" << qid << ";";
 	std::string sql = query.str();
 		
 	mysql_query(mysql_connection, sql.c_str());
@@ -328,6 +329,7 @@ static int sqlite_get_jobs_callback(void *arg, int argc, char **argv, char **azC
 	t.dateq = argv[6] ? atoi(argv[6]) : 0;
 	t.dater = argv[7] ? atoi(argv[7]) : 0;
 	(*ret).push_back(t);
+	return 0;
 }
 std::vector < t_queued_job > sqlite_get_jobs(unsigned long long qid, unsigned long long max, int status) {
 	std::ostringstream query;
@@ -374,10 +376,11 @@ unsigned long long sqlite_backend_create_queue(std::string name, long max_jobs) 
 }
 
 // Delete a queue
-void sqlite_backend_delete_queue(unsigned long long qid) {
+void sqlite_backend_delete_queue(unsigned long long qid, bool truncate) {
 	std::ostringstream query;
 	query << "DELETE FROM `jobs` WHERE `qid`=" << qid << ";";
-	query << "DELETE FROM `queues` WHERE `id`=" << qid << ";";
+	if (!truncate)
+		query << "DELETE FROM `queues` WHERE `id`=" << qid << ";";
 	sqlite3_exec(sqlite_db, query.str().c_str(), 0, 0, 0);
 }
 
@@ -449,8 +452,8 @@ unsigned long long backend_create_queue(std::string name, long max_jobs) {
 bool backend_create_job(unsigned long long qid, const std::string & cmdline, const std::string & env, const std::string &outf, int prio) {
 	return callbacks[cba].backend_create_job(qid,cmdline,env,outf,prio);
 }
-void backend_delete_queue(unsigned long long qid) {
-	callbacks[cba].backend_delete_queue(qid);
+void backend_delete_queue(unsigned long long qid, bool t) {
+	callbacks[cba].backend_delete_queue(qid, t);
 }
 void get_job_summary(unsigned int * running, unsigned int * waiting, unsigned int * completed) {
 	callbacks[cba].get_job_summary(running,waiting,completed);
