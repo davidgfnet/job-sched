@@ -4,6 +4,7 @@ import argparse
 import json
 import urllib.request
 import urllib.parse
+import os
 
 # Pretty table formatter :D
 class ALIGN:
@@ -50,12 +51,12 @@ def brm(l):	return ' '.join(l.split('\n'))
 def URLRequest(url, params):
 	try:
 		if len(params) > 0:
-			data = urllib.parse.urlencode(values)
+			data = urllib.parse.urlencode(params).encode('ascii')
 			return urllib.request.urlopen(url,data).read()
 		else:
 			return urllib.request.urlopen(url).read()
 	except:
-		return ""
+		raise
 
 def send_command(command, params = {}):
 	data = URLRequest("http://" + global_server_addr_port + command, params)
@@ -101,7 +102,18 @@ def command_delqueue(args):
 	command_delq(args, False)
 
 def command_queuejob(args):
-	pass
+	env = '\n'.join([var+"="+os.environ[var] for var in os.environ])
+	params = { 
+		"command" : '\n'.join(args.command), 
+		"env" : env,
+		"output" : os.path.abspath(args.output_file),
+		"prio": "100"
+	}
+	res = send_command("/queuejob/" + urllib.parse.quote(args.queue_id), params)
+	if res['code'] == "ok":
+		print("Job successfully queued!")
+	else:
+		print("Error queuing job!")
 
 parser = argparse.ArgumentParser(description='Manage job-scheduler server')
 
