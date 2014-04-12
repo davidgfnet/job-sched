@@ -359,7 +359,7 @@ void sqlite_set_job_status(unsigned long long id, int status) {
 	std::ostringstream query;
 	query << "UPDATE `jobs` SET `status`=" << status;
 	if (status == 1) // Mark run time
-		query << ",`dateStarted`=now() ";
+		query << ",`dateStarted`=strftime('%s', 'now') ";
 	query << " WHERE `id`=" << id;
 
 	sqlite3_exec(sqlite_db, query.str().c_str(), 0, 0, 0);
