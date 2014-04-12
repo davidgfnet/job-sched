@@ -64,7 +64,6 @@ def send_command(command, params = {}):
 
 def command_listqueue(args):
 	res = send_command("/queues")
-	#check_code(res)
 	print( Table( 
 			Column("Queue ID",        [x['id']      for x in res['result']]),
 			Column("Queue name",      [x['name']    for x in res['result']]),
@@ -77,7 +76,6 @@ def command_listjobs(args):
 		res = send_command("/jobs/" + urllib.parse.quote(args.queue_id))
 	else:
 		res = send_command("/jobs")
-	#check_code(res)
 	print( Table( 
 			Column("Job ID",          [y['id']                for x in res['result'] for y in x['jobs']]),
 			Column("Queue ID",        [x['qid']               for x in res['result'] for y in x['jobs']]),

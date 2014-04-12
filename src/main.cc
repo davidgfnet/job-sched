@@ -6,7 +6,10 @@
 #include "common.h"
 #include "backend.h"
 
-const char usage [] = "%s [-p port] [-db dbinfo] [-s]\n"
+const char usage [] = "%s [-p port] [-db dbinfo] [-s] [-a]\n"
+	"\n"
+	" -s:       Reset backend daabase (clears all jobs & queues!!!)\n"
+	" -a:       Binds server address to any IP (listens on external IPs)\n"
 	"\n"
 	"dbinfo:\n"
 	" - mysql:  mysql:host,database,user,password\n"
@@ -47,7 +50,7 @@ int main(int argc, char ** argv) {
 	pthread_create (&output, NULL, &output_thread,    &stop);
 	
 	// Start a server to receive queries
-	serve_queries(8080);
+	serve_queries(8080, false);
 }
 
 

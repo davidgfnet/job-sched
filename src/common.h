@@ -85,7 +85,7 @@ bool delete_queue(unsigned long long qid, bool truncate);
 void * scheduler_thread(void * args);
 void * output_thread(void * args);
 void serve_queries();
-void serve_queries(int port);
+void serve_queries(int port, bool anyip);
 std::string urldecode (std::string url);
 
 
