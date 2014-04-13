@@ -110,8 +110,8 @@ void my_get_job_summary(unsigned int * running, unsigned int * waiting, unsigned
 			res[i] = atoi(row[0]);
 		}
 	}
-	*running = res[0];
-	*waiting = res[1];
+	*waiting = res[0];
+	*running = res[1];
 	*completed = res[2];
 }
 
@@ -311,8 +311,8 @@ void sqlite_get_job_summary(unsigned int * running, unsigned int * waiting, unsi
 	
 		sqlite3_exec(sqlite_db, query.str().c_str(), sqlite_get_job_summary_callback, &res[i], 0);
 	}
-	*running = res[0];
-	*waiting = res[1];
+	*waiting = res[0];
+	*running = res[1];
 	*completed = res[2];
 }
 
