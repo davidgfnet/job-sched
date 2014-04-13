@@ -66,6 +66,13 @@ void spawn_job (t_job * j) {
 		for (unsigned int i = 0; i < envs.size()-1; i++)
 			en[i] = envs[i+1].c_str();
 		en[envs.size()-1] = 0;
+
+		// Try to chdir using PWD env var
+		for (unsigned int i = 0; i < envs.size(); i++)
+			if (envs[i].substr(0,4) == "PWD=") {
+				chdir(envs[i].substr(4).c_str());
+				break;
+			}
 		
 		execvpe (path, (char* const*)ar, (char* const*)en);
 	}
