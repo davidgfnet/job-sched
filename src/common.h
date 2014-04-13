@@ -88,4 +88,7 @@ void serve_queries();
 void serve_queries(int port, bool anyip);
 std::string urldecode (std::string url);
 
+extern volatile int force_scheduling;
+bool edit_queue(unsigned long long qid, int max_run);
+
 

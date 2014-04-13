@@ -272,6 +272,10 @@ std::string get_response(const std::string & req) {
 			os << "{ \"code\": \"ok\"}";
 		else
 			os << "{ \"code\": \"error\"}";
+
+		pthread_mutex_lock(&queue_mutex);
+		force_scheduling = 1;
+		pthread_mutex_unlock(&queue_mutex);
 	}
 	else if (path.substr(0,5) == "/jobs") { // Form /jobs/queueid-name/status
 		std::vector <std::string > fields = Tokenize(path.substr(5),"/");
@@ -344,7 +348,6 @@ std::string get_response(const std::string & req) {
 	}
 	else if (path.substr(0,10) == "/delqueue/" ||
 			path.substr(0,10) == "/trnqueue/") {
-		// Data is in the post body
 		unsigned long long qid = ~0;
 		if (path.size() > 10)
 			qid = get_qid(path.substr(10));
@@ -352,6 +355,20 @@ std::string get_response(const std::string & req) {
 		bool only_truncate = path.substr(0,10) == "/trnqueue/";
 
 		if (qid != ~0 && delete_queue(qid, only_truncate))
+			os << "{ \"code\": \"ok\"}";
+		else
+			os << "{ \"code\": \"error\"}";
+	}
+	else if (path.substr(0,11) == "/editqueue/") {
+		unsigned long long qid = ~0;
+		if (path.size() > 11)
+			qid = get_qid(path.substr(11));
+
+		// Missing parameters are not modified
+		std::string max_run = post_parse(body, "max_run");
+		int mrun = max_run == "" ? -1 : atoi(max_run.c_str());
+
+		if (qid != ~0 && edit_queue(qid, mrun))
 			os << "{ \"code\": \"ok\"}";
 		else
 			os << "{ \"code\": \"error\"}";

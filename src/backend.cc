@@ -167,6 +167,16 @@ void my_set_job_status(unsigned long long id, int status) {
 		
 	mysql_query(mysql_connection, sql.c_str());
 }
+bool my_backend_edit_queue(unsigned long long qid, int max_run) {
+	if (max_run < 0) return true;
+
+	std::ostringstream query;
+	query << "UPDATE `queues` SET `max_run`=" << max_run;
+	query << " WHERE `id`=" << qid;
+	std::string sql = query.str();
+		
+	return (!mysql_query(mysql_connection, sql.c_str()));
+}
 
 // Create a new queue
 unsigned long long my_backend_create_queue(std::string name, long max_jobs) {
@@ -365,6 +375,17 @@ void sqlite_set_job_status(unsigned long long id, int status) {
 	sqlite3_exec(sqlite_db, query.str().c_str(), 0, 0, 0);
 }
 
+bool sqlite_backend_edit_queue(unsigned long long qid, int max_run) {
+	if (max_run < 0) return true;
+
+	std::ostringstream query;
+	query << "UPDATE `queues` SET `max_run`=" << max_run;
+	query << " WHERE `id`=" << qid;
+		
+	return (SQLITE_OK == sqlite3_exec(sqlite_db, query.str().c_str(), 0, 0, 0));
+}
+
+
 // Create a new queue
 unsigned long long sqlite_backend_create_queue(std::string name, long max_jobs) {
 	std::ostringstream query;
@@ -402,6 +423,7 @@ bool sqlite_backend_create_job(unsigned long long qid, const std::string & cmdli
 struct t_ba_callbacks {
 	t_backend_setup backend_setup;
 	t_backend_create_queue backend_create_queue;
+	t_backend_edit_queue backend_edit_queue;
 	t_backend_create_job backend_create_job;
 	t_backend_delete_queue backend_delete_queue;
 	t_get_job_summary get_job_summary;
@@ -419,6 +441,7 @@ t_ba_callbacks callbacks[NUM_BACKENDS] = {
 	{
 		my_backend_setup,
 		my_backend_create_queue,
+		my_backend_edit_queue,
 		my_backend_create_job,
 		my_backend_delete_queue,
 		my_get_job_summary,
@@ -432,6 +455,7 @@ t_ba_callbacks callbacks[NUM_BACKENDS] = {
 	{
 		sqlite_backend_setup,
 		sqlite_backend_create_queue,
+		sqlite_backend_edit_queue,
 		sqlite_backend_create_job,
 		sqlite_backend_delete_queue,
 		sqlite_get_job_summary,
@@ -469,6 +493,9 @@ std::vector < t_queued_job > get_waiting_jobs(unsigned long long qid, unsigned l
 }
 std::vector < t_job_queue > backend_get_queues() {
 	return callbacks[cba].backend_get_queues();
+}
+bool backend_edit_queue(unsigned long long qid, int max_run) {
+	return callbacks[cba].backend_edit_queue(qid,max_run);
 }
 
 

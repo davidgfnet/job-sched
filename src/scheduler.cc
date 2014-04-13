@@ -8,6 +8,8 @@
 #include "common.h"
 #include "backend.h"
 
+volatile int force_scheduling = 0;  // Set this to one in order to force scheduler to run
+
 pid_t wait_timeout_(int * s) {
 	sigset_t mask;
 	sigset_t orig_mask;
@@ -35,11 +37,12 @@ pid_t wait_timeout_(int * s) {
 }
 
 pid_t wait_timeout(int * s) {
-
-	for (int i = 0; i < 5; i++) {
+	// Wait until we get a child
+	// Or if we are forced to stop (a queue or job added)
+	while (!force_scheduling) {
 		pid_t p = waitpid(-1, s, WNOHANG);
 		if (p > 0) return p;  // NOHANG returns zero :(
-		sleep(1);
+		sleep(3);
 	}
 	return -1;
 }
@@ -72,8 +75,9 @@ void * scheduler_thread(void * args) {
 			}
 			pthread_mutex_unlock(&queue_mutex);
 			
-			if (online_jobs == 0)
-				sleep(2);
+			// If no work, just wait ...
+			while (online_jobs == 0 && !force_scheduling)
+				sleep(3);
 			
 		} while (online_jobs == 0);
 
@@ -83,6 +87,7 @@ void * scheduler_thread(void * args) {
 
 		// Mark job as done
 		pthread_mutex_lock(&queue_mutex);
+		force_scheduling = 0;
 		if (f >= 0) {
 			for (unsigned int i = 0; i < queues.size(); i++) {
 				for (unsigned int j = 0; j < queues[i].running.size(); j++) {
@@ -132,5 +137,14 @@ bool delete_queue(unsigned long long qid, bool truncate) {
 	pthread_mutex_unlock(&queue_mutex);
 	return true;
 }
+
+bool edit_queue(unsigned long long qid, int max_run) {
+	pthread_mutex_lock(&queue_mutex);
+	bool r = backend_edit_queue(qid, max_run);
+	force_scheduling = 1;
+	pthread_mutex_unlock(&queue_mutex);
+	return r;
+}
+
 
 

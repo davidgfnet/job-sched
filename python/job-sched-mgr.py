@@ -99,6 +99,16 @@ def command_trucqueue(args):
 def command_delqueue(args):
 	command_delq(args, False)
 
+def command_editqueue(args):
+	parm = {}
+	if args.max_running:
+		parm['max_run'] = str(args.max_running)
+	res = send_command("/editqueue/" + urllib.parse.quote(args.queue_id), parms)
+	if res['code'] == "ok":
+		print("Queue successfully modified!")
+	else:
+		print("Error editing the queue!")
+
 def command_queuejob(args):
 	env = '\n'.join([var+"="+os.environ[var] for var in os.environ])
 	params = { 
@@ -141,6 +151,13 @@ list_parser.set_defaults(func=command_delqueue)
 list_parser = subparsers.add_parser('truncqueue', help='Delete all jobs in the specified queue (does not delete the queue itself)')
 list_parser.add_argument('queue_id', action='store', default=None, help='Queue ID to list')
 list_parser.set_defaults(func=command_trucqueue)
+
+# A editqueue command
+list_parser = subparsers.add_parser('editqueue', help='Edit queue parameters and status')
+list_parser.add_argument('queue_id', action='store', default=None, help='Queue ID to list')
+list_parser.add_argument('-n', dest='max_running', action='store', default=None,
+                         help='Maximum number of running jobs for this queue')
+list_parser.set_defaults(func=command_editqueue)
 
 # A deljob command
 list_parser = subparsers.add_parser('deljob', help='Delete jobs from the server')
