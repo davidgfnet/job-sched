@@ -103,7 +103,7 @@ def command_editqueue(args):
 	parm = {}
 	if args.max_running:
 		parm['max_run'] = str(args.max_running)
-	res = send_command("/editqueue/" + urllib.parse.quote(args.queue_id), parms)
+	res = send_command("/editqueue/" + urllib.parse.quote(args.queue_id), parm)
 	if res['code'] == "ok":
 		print("Queue successfully modified!")
 	else:
@@ -171,6 +171,7 @@ list_parser.add_argument('command',     action='store', default=None, help='Comm
 list_parser.set_defaults(func=command_queuejob)
 
 args = parser.parse_args()
+global_server_addr_port = args.server_address
 args.func(args)
 
 
