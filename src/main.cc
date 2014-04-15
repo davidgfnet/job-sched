@@ -22,10 +22,12 @@ int main(int argc, char ** argv) {
 		fprintf(stderr, usage, argv[0]);
 		exit(1);
 	}
-	
+
+	int port = 8080;	
 	bool anyip = false;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp("-p", argv[i]) == 0) {
+			port = atoi(argv[i+1]);
 			i++;
 		}
 		else if (strcmp("-db", argv[i]) == 0) {
@@ -53,7 +55,7 @@ int main(int argc, char ** argv) {
 	pthread_create (&output, NULL, &output_thread,    &stop);
 	
 	// Start a server to receive queries
-	serve_queries(8080, anyip);
+	serve_queries(port, anyip);
 }
 
 

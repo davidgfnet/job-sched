@@ -17,6 +17,7 @@
 
 const char header_200[] = "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: %s\r\nConnection: close\r\n\r\n";
 const char header_404[] = "HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n";
+const char header_301[] = "HTTP/1.1 301 Moved Permanently\r\nContent-Length: 0\r\nLocation: /web/index.html\r\nConnection: close\r\n\r\n";
 
 enum CStatus { sReceiving, sResponding, sError };
 
@@ -245,7 +246,10 @@ std::string get_response(const std::string & req) {
 	std::ostringstream os;
 
 	printf("Requested %s\n", path.c_str());	
-	if (path == "/queues") {
+	if (path == "/") {
+		return header_301;
+	}
+	else if (path == "/queues") {
 		// Return all the queues, with their characteristics
 		os << "{ \"code\": \"ok\", \"result\": [ ";
 		pthread_mutex_lock(&queue_mutex);
