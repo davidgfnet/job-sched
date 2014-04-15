@@ -19,6 +19,7 @@ typedef void (*t_set_job_status)(unsigned long long, int);
 typedef std::vector < t_queued_job > (*t_get_jobs)(unsigned long long, unsigned long long, int);
 typedef std::vector < t_queued_job > (*t_get_waiting_jobs)(unsigned long long, unsigned long long);
 typedef std::vector < t_job_queue > (*t_backend_get_queues)();
+typedef void (*t_running_jobs_status)(unsigned long long,int);
 
 // Backend basic operations
 void backend_setup();
@@ -31,6 +32,7 @@ void set_job_status(unsigned long long id, int status);
 std::vector < t_queued_job > get_jobs(unsigned long long qid, unsigned long long max, int status);
 std::vector < t_queued_job > get_waiting_jobs(unsigned long long qid, unsigned long long max);
 std::vector < t_job_queue > backend_get_queues();
+void backend_running_jobs_status(unsigned long long qid, int status);
 
 #endif
 

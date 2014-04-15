@@ -211,6 +211,16 @@ bool my_backend_create_job(unsigned long long qid, const std::string & cmdline, 
 	return (!mysql_query(mysql_connection, sql.c_str()));
 }
 
+void my_running_jobs_status(unsigned long long qid, int status) {
+	std::ostringstream query;
+	query << "UPDATE `jobs` SET `status`=" << status;
+	query << " WHERE `status`=1 ";
+	if (qid != ~0)
+		query << " AND `qid`=" << qid;
+
+	mysql_query(mysql_connection, query.str().c_str());
+}
+
 #define MYSQL_NUM_BACKEND 1
 #else
 #define MYSQL_NUM_BACKEND 0
@@ -414,6 +424,16 @@ bool sqlite_backend_create_job(unsigned long long qid, const std::string & cmdli
 	return (SQLITE_OK == sqlite3_exec(sqlite_db, query.str().c_str(), 0, 0, 0));
 }
 
+void sqlite_running_jobs_status(unsigned long long qid, int status) {
+	std::ostringstream query;
+	query << "UPDATE `jobs` SET `status`=" << status;
+	query << " WHERE `status`=1 ";
+	if (qid != ~0)
+		query << " AND `qid`=" << qid;
+
+	sqlite3_exec(sqlite_db, query.str().c_str(), 0, 0, 0);
+}
+
 
 #define SQLITE_NUM_BACKEND 1
 #else
@@ -431,6 +451,7 @@ struct t_ba_callbacks {
 	t_get_jobs get_jobs;
 	t_get_waiting_jobs get_waiting_jobs;
 	t_backend_get_queues backend_get_queues;
+	t_running_jobs_status backend_running_jobs_status;
 };
 unsigned int cba = -1;
 
@@ -448,7 +469,8 @@ t_ba_callbacks callbacks[NUM_BACKENDS] = {
 		my_set_job_status,
 		my_get_jobs,
 		my_get_waiting_jobs,
-		my_backend_get_queues
+		my_backend_get_queues,
+		my_running_jobs_status
 	},
 	#endif
 	#ifdef ENABLE_SQLITE_BACKEND
@@ -462,7 +484,8 @@ t_ba_callbacks callbacks[NUM_BACKENDS] = {
 		sqlite_set_job_status,
 		sqlite_get_jobs,
 		sqlite_get_waiting_jobs,
-		sqlite_backend_get_queues
+		sqlite_backend_get_queues,
+		sqlite_running_jobs_status
 	},
 	#endif
 };
@@ -496,6 +519,9 @@ std::vector < t_job_queue > backend_get_queues() {
 }
 bool backend_edit_queue(unsigned long long qid, int max_run) {
 	return callbacks[cba].backend_edit_queue(qid,max_run);
+}
+void backend_running_jobs_status(unsigned long long qid, int status) {
+	callbacks[cba].backend_running_jobs_status(qid,status);
 }
 
 
@@ -538,6 +564,8 @@ void db_load_startup() {
 		queues.push_back(qu[i]);
 	}
 	std::cerr << "Loaded " << queues.size() << " queues" << std::endl;
+	// Set running jobs to waiting (all queues)
+	backend_running_jobs_status(~0, 0);
 	pthread_mutex_unlock(&queue_mutex);
 }
 

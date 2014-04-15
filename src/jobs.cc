@@ -46,7 +46,7 @@ void spawn_job (t_job * j) {
 		setNonblocking(j->pstdout);
 		
 		// Open file for stdout logging
-		j->pfile = open(j->output.c_str(), O_WRONLY | O_TRUNC | O_CREAT);
+		j->pfile = open(j->output.c_str(), O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR|S_IWUSR);
 	}else{
 		// Move stdout to our pipe
 		close(pipes[0]);
