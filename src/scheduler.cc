@@ -39,7 +39,8 @@ pid_t wait_timeout_(int * s) {
 pid_t wait_timeout(int * s) {
 	// Wait until we get a child
 	// Or if we are forced to stop (a queue or job added)
-	while (!force_scheduling) {
+	int n = 0;
+	while (!force_scheduling && n++ < 5) {
 		pid_t p = waitpid(-1, s, WNOHANG);
 		if (p > 0) return p;  // NOHANG returns zero :(
 		sleep(3);
